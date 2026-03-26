@@ -1,8 +1,8 @@
 <main class="app-shell">
   <section class="game-card">
-    <app-game-header title="SUTOM"></app-game-header>
+    <app-game-header [headerTitle]="'WORDLE'" (restartRequested)="restartGame()"></app-game-header>
 
-    <app-status-banner [text]="message()"></app-status-banner>
+    <app-status-banner [text]="message()" [loading]="isLoading()"></app-status-banner>
 
     <app-word-grid
       [rows]="evaluatedRows()"
@@ -13,7 +13,7 @@
 
     <app-keyboard
       [keyStates]="keyStates()"
-      [disabled]="isGameFinished()"
+      [disabled]="isGameFinished() || isLoading()"
       (keyPressed)="handleInput($event)"
     ></app-keyboard>
   </section>

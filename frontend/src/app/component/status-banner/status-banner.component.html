@@ -1,3 +1,10 @@
-@if (text()) {
+@if (loading()) {
+  <div class="loader-box" aria-live="polite" aria-busy="true">
+    <p-progress-spinner [style]="{ width: '24px', height: '24px' }" strokeWidth="6"></p-progress-spinner>
+    @if (text()) {
+      <span class="loader-text">{{ text() }}</span>
+    }
+  </div>
+} @else if (text()) {
   <p-message severity="contrast" [text]="text()"></p-message>
 }

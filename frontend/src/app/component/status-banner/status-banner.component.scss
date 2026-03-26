@@ -15,3 +15,23 @@
   border: none;
   padding: 0.75rem 1rem;
 }
+
+.loader-box {
+  width: 100%;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 0.7rem;
+  background: #d7d9dc;
+}
+
+.loader-text {
+  font-weight: 700;
+  color: #26303b;
+}
+
+:host ::ng-deep .loader-box .p-progressspinner-circle {
+  stroke: #26303b;
+}

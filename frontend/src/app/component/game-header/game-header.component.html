@@ -1,11 +1,17 @@
 <header class="header">
-  <button class="icon-button" aria-label="Aide">?</button>
-  <h1>{{ title() }}</h1>
-  <div class="spacer"></div>
-  <button class="icon-button" aria-label="Statistiques">
-    <i class="pi pi-chart-bar"></i>
-  </button>
-  <button class="icon-button" aria-label="Reglages">
-    <i class="pi pi-cog"></i>
+  <div class="help-wrap">
+    <button class="icon-button" aria-label="Aide" title="Aide" type="button" (click)="toggleHelp($event)">?</button>
+    @if (showHelp()) {
+      <div class="help-tooltip" role="tooltip">
+        <p><strong>Regles:</strong> trouve le mot de 5 lettres en 6 essais.</p>
+        <p>Vert: bonne lettre, bonne place.</p>
+        <p>Jaune: bonne lettre, mauvaise place.</p>
+        <p>Gris: lettre absente.</p>
+      </div>
+    }
+  </div>
+  <h1>{{ headerTitle() }}</h1>
+  <button class="icon-button" aria-label="Relancer" title="Relancer" type="button" (click)="requestRestart()">
+    <i class="pi pi-refresh"></i>
   </button>
 </header>

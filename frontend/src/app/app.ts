@@ -42,6 +42,15 @@ export class App implements OnInit {
     await this.initializeGame();
   }
 
+  async restartGame(): Promise<void> {
+    if (this.isLoading()) {
+      return;
+    }
+
+    this.resetBoardState();
+    await this.initializeGame();
+  }
+
   @HostListener('window:keydown', ['$event'])
   onKeyboardEvent(event: KeyboardEvent): void {
     const key = event.key;
@@ -94,20 +103,31 @@ export class App implements OnInit {
     this.isLoading.set(true);
     this.message.set('Chargement de la partie...');
 
-    const dictionary = new DicoLinkApiDictionary(this.dicoLinkApiUrl);
-    const result = await startGameFromApis(this.trouveMotApiUrl, dictionary);
+    try {
+      const dictionary = new DicoLinkApiDictionary(this.dicoLinkApiUrl);
+      const result = await startGameFromApis(this.trouveMotApiUrl, dictionary);
 
-    if (!result.ok) {
-      this.message.set(this.toUserMessage(result.error));
+      if (!result.ok) {
+        this.message.set(this.toUserMessage(result.error));
+        return;
+      }
+
+      this.dictionary = dictionary;
+      this.gameState.set(result.value);
+      this.syncViewFromGame(result.value);
+      this.message.set('');
+    } finally {
       this.isLoading.set(false);
-      return;
     }
+  }
 
-    this.dictionary = dictionary;
-    this.gameState.set(result.value);
-    this.syncViewFromGame(result.value);
+  private resetBoardState(): void {
+    this.currentGuess.set('');
+    this.evaluatedRows.set([]);
+    this.keyStates.set({});
     this.message.set('');
-    this.isLoading.set(false);
+    this.gameState.set(null);
+    this.dictionary = null;
   }
 
   private async submitCurrentGuess(): Promise<void> {
@@ -117,27 +137,34 @@ export class App implements OnInit {
       return;
     }
 
-    const result = await submitGuessWithApiDictionary(game, this.currentGuess(), this.dictionary);
-    if (!result.ok) {
-      this.message.set(this.toUserMessage(result.error));
-      return;
+    this.isLoading.set(true);
+    this.message.set('Verification du mot...');
+
+    try {
+      const result = await submitGuessWithApiDictionary(game, this.currentGuess(), this.dictionary);
+      if (!result.ok) {
+        this.message.set(this.toUserMessage(result.error));
+        return;
+      }
+
+      this.gameState.set(result.value);
+      this.syncViewFromGame(result.value);
+      this.currentGuess.set('');
+
+      if (result.value.status === 'WON') {
+        this.message.set('Bravo, mot trouve.');
+        return;
+      }
+
+      if (result.value.status === 'LOST') {
+        this.message.set('Perdu.');
+        return;
+      }
+
+      this.message.set('');
+    } finally {
+      this.isLoading.set(false);
     }
-
-    this.gameState.set(result.value);
-    this.syncViewFromGame(result.value);
-    this.currentGuess.set('');
-
-    if (result.value.status === 'WON') {
-      this.message.set('Bravo, mot trouve.');
-      return;
-    }
-
-    if (result.value.status === 'LOST') {
-      this.message.set('Perdu.');
-      return;
-    }
-
-    this.message.set('');
   }
 
   private syncViewFromGame(game: GameState): void {

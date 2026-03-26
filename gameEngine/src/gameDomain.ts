@@ -434,6 +434,11 @@ export async function submitGuessWithApiDictionary(
 		return shape;
 	}
 
+	if (shape.value === game.secret) {
+		dictionary.addKnownWord(shape.value);
+		return submitGuess(game, shape.value);
+	}
+
 	const exists = await dictionary.ensureContains(shape.value);
 	if (!exists) {
 		return { ok: false, error: { type: "WordNotInDictionary", value: shape.value } };
