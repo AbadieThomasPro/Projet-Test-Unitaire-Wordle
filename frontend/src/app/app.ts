@@ -27,7 +27,7 @@ export class App implements OnInit {
 
   // TODO: remplacer par tes vraies URLs.
   private readonly trouveMotApiUrl = 'https://trouve-mot.fr/api/size/5';
-  private readonly dicoLinkApiUrl = 'https://api.dicolink.com/v1/mot/';
+  private readonly dicoLinkApiUrl = 'https://api.poocoo.fr/api/v1/words';
   private dictionary: DicoLinkApiDictionary | null = null;
   private readonly gameState = signal<GameState | null>(null);
 

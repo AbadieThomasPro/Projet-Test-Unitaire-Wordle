@@ -28,6 +28,10 @@ function normalizeWord(value: string): string {
 		.toUpperCase();
 }
 
+function foldAccents(value: string): string {
+	return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function validateWordShape(value: string): Result<Word> {
 	const normalized = normalizeWord(value);
 
@@ -245,8 +249,76 @@ function extractBooleanFromPayload(payload: unknown): boolean {
 	}
 
 	const data = payload as Record<string, unknown>;
+	const success = data["success"];
+	const responseData = data["data"];
+	if (success === true && Array.isArray(responseData)) {
+		return responseData.length > 0;
+	}
+
+	if (success === true && responseData && typeof responseData === "object") {
+		const dataObject = responseData as Record<string, unknown>;
+		const words = dataObject["words"];
+		if (Array.isArray(words)) {
+			return words.length > 0;
+		}
+
+		const totalCount = dataObject["totalCount"];
+		if (typeof totalCount === "number") {
+			return totalCount > 0;
+		}
+	}
+
 	const candidates = [data["valid"], data["exists"], data["ok"], data["found"]];
 	return candidates.some((value) => value === true);
+}
+
+function payloadContainsWord(payload: unknown, expected: string): boolean {
+	const expectedFolded = foldAccents(expected).toLowerCase();
+
+	if (!payload || typeof payload !== "object") {
+		return false;
+	}
+
+	const data = payload as Record<string, unknown>;
+	const entries = data["data"];
+
+	if (Array.isArray(entries)) {
+		for (const entry of entries) {
+			if (!entry || typeof entry !== "object") {
+				continue;
+			}
+
+			const record = entry as Record<string, unknown>;
+			const wordCandidate = record["word"] ?? record["name"] ?? record["mot"];
+			if (typeof wordCandidate !== "string") {
+				continue;
+			}
+
+			const folded = foldAccents(wordCandidate).toLowerCase();
+			if (folded === expectedFolded) {
+				return true;
+			}
+		}
+	}
+
+	if (entries && typeof entries === "object") {
+		const dataObject = entries as Record<string, unknown>;
+		const words = dataObject["words"];
+		if (Array.isArray(words)) {
+			for (const candidate of words) {
+				if (typeof candidate !== "string") {
+					continue;
+				}
+
+				const folded = foldAccents(candidate).toLowerCase();
+				if (folded === expectedFolded) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 export async function getSecretWordFromTrouveMotApi(
@@ -272,18 +344,25 @@ export async function checkWordWithDicoLinkApi(
 	word: string,
 	fetcher: FetchLike = getGlobalFetch(),
 ): Promise<boolean> {
-	const normalized = normalizeWord(word);
+	const queryWord = foldAccents(word.trim()).toLowerCase();
+	if (queryWord.length === 0) {
+		return false;
+	}
+
 	const cleanedBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-	const response = await fetcher(`${cleanedBaseUrl}/${encodeURIComponent(normalized)}`, {
-		method: "GET",
-	});
+	const url = `${cleanedBaseUrl}?contains=${encodeURIComponent(queryWord)}&length=${WORD_LENGTH}`;
+	const response = await fetcher(url, { method: "GET" });
 
 	if (!response.ok) {
 		return false;
 	}
 
 	const payload = await response.json();
-	return extractBooleanFromPayload(payload);
+	if (!extractBooleanFromPayload(payload)) {
+		return false;
+	}
+
+	return payloadContainsWord(payload, queryWord);
 }
 
 export interface ApiDictionary extends Dictionary {
@@ -336,10 +415,7 @@ export async function startGameFromApis(
 		return secretResult;
 	}
 
-	const exists = await dictionary.ensureContains(secretResult.value);
-	if (!exists) {
-		return { ok: false, error: { type: "WordNotInDictionary", value: secretResult.value } };
-	}
+	dictionary.addKnownWord(secretResult.value);
 
 	const provider: SecretWordProvider = {
 		pickSecret: () => secretResult.value,
