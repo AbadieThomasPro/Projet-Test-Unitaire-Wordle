@@ -11,8 +11,9 @@ import {
   DicoLinkApiDictionary,
   submitGuessWithApiDictionary,
   startGameFromApis,
-} from '../../../gameEngine/src/gameDomain';
-import type { DomainError, GameState } from '../../../gameEngine/src/types';
+  type DomainError,
+  type GameState,
+} from '../../../gameEngine/src';
 
 @Component({
   selector: 'app-root',
@@ -25,7 +26,6 @@ export class App implements OnInit {
   readonly maxAttempts = 6;
   readonly wordLength = 5;
 
-  // TODO: remplacer par tes vraies URLs.
   private readonly trouveMotApiUrl = 'https://trouve-mot.fr/api/size/5';
   private readonly dicoLinkApiUrl = 'https://api.poocoo.fr/api/v1/words';
   private dictionary: DicoLinkApiDictionary | null = null;
