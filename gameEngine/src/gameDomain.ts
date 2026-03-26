@@ -13,6 +13,8 @@ type Result<T> =
 	| { ok: true; value: T }
 	| { ok: false; error: DomainError };
 
+export type DomainResult<T> = Result<T>;
+
 const WORD_LENGTH = 5;
 const MAX_ATTEMPTS = 6 as const;
 
@@ -182,6 +184,34 @@ function getGlobalFetch(): FetchLike {
 }
 
 function extractWordFromPayload(payload: unknown): string | null {
+	if (Array.isArray(payload)) {
+		if (payload.length === 0) {
+			return null;
+		}
+
+		const first = payload[0];
+		if (!first || typeof first !== "object") {
+			return null;
+		}
+
+		const item = first as Record<string, unknown>;
+		const arrayCandidates = [
+			item["name"],
+			item["word"],
+			item["mot"],
+			item["value"],
+			item["result"],
+		];
+
+		for (const candidate of arrayCandidates) {
+			if (typeof candidate === "string") {
+				return candidate;
+			}
+		}
+
+		return null;
+	}
+
 	if (typeof payload === "string") {
 		return payload;
 	}
@@ -191,7 +221,7 @@ function extractWordFromPayload(payload: unknown): string | null {
 	}
 
 	const data = payload as Record<string, unknown>;
-	const candidates = [data.word, data.mot, data.value, data.result];
+	const candidates = [data["word"], data["mot"], data["value"], data["result"]];
 	for (const candidate of candidates) {
 		if (typeof candidate === "string") {
 			return candidate;
@@ -202,6 +232,10 @@ function extractWordFromPayload(payload: unknown): string | null {
 }
 
 function extractBooleanFromPayload(payload: unknown): boolean {
+	if (Array.isArray(payload)) {
+		return payload.length > 0;
+	}
+
 	if (typeof payload === "boolean") {
 		return payload;
 	}
@@ -211,7 +245,7 @@ function extractBooleanFromPayload(payload: unknown): boolean {
 	}
 
 	const data = payload as Record<string, unknown>;
-	const candidates = [data.valid, data.exists, data.ok, data.found];
+	const candidates = [data["valid"], data["exists"], data["ok"], data["found"]];
 	return candidates.some((value) => value === true);
 }
 
@@ -239,7 +273,8 @@ export async function checkWordWithDicoLinkApi(
 	fetcher: FetchLike = getGlobalFetch(),
 ): Promise<boolean> {
 	const normalized = normalizeWord(word);
-	const response = await fetcher(`${baseUrl}?word=${encodeURIComponent(normalized)}`, {
+	const cleanedBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+	const response = await fetcher(`${cleanedBaseUrl}/${encodeURIComponent(normalized)}`, {
 		method: "GET",
 	});
 
@@ -249,4 +284,84 @@ export async function checkWordWithDicoLinkApi(
 
 	const payload = await response.json();
 	return extractBooleanFromPayload(payload);
+}
+
+export interface ApiDictionary extends Dictionary {
+	ensureContains(word: string): Promise<boolean>;
+	addKnownWord(word: Word): void;
+}
+
+export class DicoLinkApiDictionary implements ApiDictionary {
+	private readonly knownWords = new Set<Word>();
+
+	constructor(
+		private readonly baseUrl: string,
+		private readonly fetcher: FetchLike = getGlobalFetch(),
+	) {}
+
+	contains(word: Word): boolean {
+		return this.knownWords.has(word);
+	}
+
+	addKnownWord(word: Word): void {
+		this.knownWords.add(word);
+	}
+
+	async ensureContains(word: string): Promise<boolean> {
+		const shape = validateWordShape(word);
+		if (!shape.ok) {
+			return false;
+		}
+
+		if (this.contains(shape.value)) {
+			return true;
+		}
+
+		const exists = await checkWordWithDicoLinkApi(this.baseUrl, shape.value, this.fetcher);
+		if (exists) {
+			this.addKnownWord(shape.value);
+		}
+
+		return exists;
+	}
+}
+
+export async function startGameFromApis(
+	trouveMotApiUrl: string,
+	dictionary: ApiDictionary,
+	fetcher: FetchLike = getGlobalFetch(),
+): Promise<Result<GameState>> {
+	const secretResult = await getSecretWordFromTrouveMotApi(trouveMotApiUrl, fetcher);
+	if (!secretResult.ok) {
+		return secretResult;
+	}
+
+	const exists = await dictionary.ensureContains(secretResult.value);
+	if (!exists) {
+		return { ok: false, error: { type: "WordNotInDictionary", value: secretResult.value } };
+	}
+
+	const provider: SecretWordProvider = {
+		pickSecret: () => secretResult.value,
+	};
+
+	return startGame(dictionary, provider);
+}
+
+export async function submitGuessWithApiDictionary(
+	game: GameState,
+	guessInput: string,
+	dictionary: ApiDictionary,
+): Promise<Result<GameState>> {
+	const shape = validateWordShape(guessInput);
+	if (!shape.ok) {
+		return shape;
+	}
+
+	const exists = await dictionary.ensureContains(shape.value);
+	if (!exists) {
+		return { ok: false, error: { type: "WordNotInDictionary", value: shape.value } };
+	}
+
+	return submitGuess(game, shape.value);
 }

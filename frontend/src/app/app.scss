@@ -1,0 +1,30 @@
+:host {
+	display: block;
+	min-height: 100dvh;
+	background: radial-gradient(circle at 30% 10%, #414a57 0%, #252a32 55%, #1f232a 100%);
+	color: #eef4ff;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.app-shell {
+	min-height: 100dvh;
+	display: grid;
+	place-items: start center;
+	padding: 1.25rem 0.75rem 1.5rem;
+}
+
+.game-card {
+	width: min(48rem, 100%);
+	display: grid;
+	gap: 0.9rem;
+}
+
+@media (max-width: 640px) {
+	.app-shell {
+		padding-top: 0.7rem;
+	}
+
+	.game-card {
+		gap: 0.65rem;
+	}
+}

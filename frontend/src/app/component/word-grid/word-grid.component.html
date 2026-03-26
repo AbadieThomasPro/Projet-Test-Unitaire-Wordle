@@ -1,0 +1,7 @@
+<section class="grid" [style.--cols]="wordLength()">
+  @for (row of displayRows(); track $index) {
+    @for (cell of row; track $index) {
+      <div class="cell" [class]="'cell state-' + cell.state">{{ cell.letter }}</div>
+    }
+  }
+</section>

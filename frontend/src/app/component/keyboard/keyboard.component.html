@@ -1,0 +1,28 @@
+<section class="keyboard" [class.is-disabled]="disabled()">
+  @for (row of rows; track $index) {
+    <div class="row">
+      @if ($index === 2) {
+        <button class="key key-special" type="button" (click)="emitKey('BACKSPACE')" aria-label="Supprimer">
+          <i class="pi pi-arrow-left"></i>
+        </button>
+      }
+
+      @for (key of row; track key) {
+        <button
+          class="key"
+          [class]="'key state-' + stateOf(key)"
+          type="button"
+          (click)="emitKey(key)"
+        >
+          {{ key }}
+        </button>
+      }
+
+      @if ($index === 2) {
+        <button class="key key-special" type="button" (click)="emitKey('ENTER')" aria-label="Valider">
+          <i class="pi pi-arrow-right"></i>
+        </button>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+.grid {
+  --size: clamp(2.1rem, 8vw, 3.25rem);
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--size));
+  gap: 0.14rem;
+  justify-content: center;
+  background: #4ca9f5;
+  border: 2px solid #6ec1ff;
+  box-shadow: inset 0 0 0 1px #79c8ff;
+  padding: 0.12rem;
+}
+
+.cell {
+  width: var(--size);
+  height: var(--size);
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbe8ff;
+  text-transform: uppercase;
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f7fbff;
+  background: #1679be;
+}
+
+.state-empty {
+  background: #1679be;
+}
+
+.state-correct {
+  background: #2f9f44;
+  border-color: #d0ffd6;
+}
+
+.state-present {
+  background: #d7b227;
+  border-color: #fff0a8;
+}
+
+.state-absent {
+  background: #5a6776;
+  border-color: #b9c2cd;
+}

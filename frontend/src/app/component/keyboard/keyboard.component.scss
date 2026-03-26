@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.keyboard {
+  margin: 1.2rem auto 0;
+  width: min(45rem, 100%);
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+.key {
+  min-width: 2.75rem;
+  height: 3rem;
+  border: 1px solid #9ca8b7;
+  border-radius: 0.4rem;
+  background: #2c323b;
+  color: #eef4ff;
+  font-weight: 700;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.key-special {
+  min-width: 3.25rem;
+  background: #444d59;
+}
+
+.state-correct {
+  background: #2f9f44;
+  border-color: #d0ffd6;
+}
+
+.state-present {
+  background: #d7b227;
+  border-color: #fff0a8;
+}
+
+.state-absent {
+  background: #5a6776;
+  border-color: #b9c2cd;
+}
+
+.is-disabled .key {
+  opacity: 0.65;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .row {
+    gap: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .key {
+    min-width: 2rem;
+    height: 2.4rem;
+    font-size: 1rem;
+  }
+}

@@ -1,0 +1,17 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  margin: 0 auto 1rem;
+}
+
+:host ::ng-deep .p-message {
+  width: 100%;
+  justify-content: center;
+  border-radius: 0.7rem;
+  font-weight: 700;
+  background: #d7d9dc;
+  color: #111721;
+  border: none;
+  padding: 0.75rem 1rem;
+}
