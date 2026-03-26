@@ -20,14 +20,31 @@ class FakeSecretWordProvider implements SecretWordProvider {
   }
 }
 
+const SECRET_PAR_DEFAUT = "LIVRE";
+
+function demarrerPartie(words: string[], secret = SECRET_PAR_DEFAUT) {
+  const dictionary = new FakeDictionary(new Set(words));
+  const provider = new FakeSecretWordProvider(secret);
+  return startGame(dictionary, provider);
+}
+
+function exigerDemarrageOk(result: any) {
+  if (!result.ok) throw new Error("Demarrage attendu en succes");
+  return result.value;
+}
+
+function exigerSoumissionOk(result: any) {
+  if (!result.ok) throw new Error("Soumission attendue en succes");
+  return result.value;
+}
+
 describe("Domaine Wordle - Point 1 tests nominaux", () => {
   it("demarre une partie en cours avec zero tentative", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE", "RAMER", "MOTIF"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
+    const words = ["LIVRE", "RAMER", "MOTIF"];
 
     // When
-    const result = startGame(dictionary, provider);
+    const result = demarrerPartie(words);
 
     // Then
     expect(result.ok).toBe(true);
@@ -40,13 +57,10 @@ describe("Domaine Wordle - Point 1 tests nominaux", () => {
 
   it("accepte une soumission valide qui ne termine pas la partie", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE", "MOTIF"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    const gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE", "MOTIF"]));
 
     // When
-    const result = submitGuess(gameResult.value, "MOTIF");
+    const result = submitGuess(game, "MOTIF");
 
     // Then
     expect(result.ok).toBe(true);
@@ -58,13 +72,10 @@ describe("Domaine Wordle - Point 1 tests nominaux", () => {
 
   it("passe la partie a WON quand le joueur trouve le mot secret", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    const gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE"]));
 
     // When
-    const result = submitGuess(gameResult.value, "LIVRE");
+    const result = submitGuess(game, "LIVRE");
 
     // Then
     expect(result.ok).toBe(true);
@@ -76,34 +87,26 @@ describe("Domaine Wordle - Point 1 tests nominaux", () => {
 
   it("passe la partie a LOST apres six tentatives non gagnantes", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE", "MOTIF"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    let gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
+    let game = exigerDemarrageOk(demarrerPartie(["LIVRE", "MOTIF"]));
 
     // When
     for (let i = 0; i < 6; i += 1) {
-      const next = submitGuess(gameResult.value, "MOTIF");
-      if (!next.ok) throw new Error("Soumission attendue en succes");
-      gameResult = { ok: true, value: next.value };
+      game = exigerSoumissionOk(submitGuess(game, "MOTIF"));
     }
 
     // Then
-    expect(gameResult.value.status).toBe("LOST");
-    expect(gameResult.value.attempts).toHaveLength(6);
+    expect(game.status).toBe("LOST");
+    expect(game.attempts).toHaveLength(6);
   });
 });
 
 describe("Domaine Wordle - Point 2 tests d erreurs", () => {
   it("rejette un mot qui n est pas dans le dictionnaire", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    const gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE"]));
 
     // When
-    const result = submitGuess(gameResult.value, "RAMER");
+    const result = submitGuess(game, "RAMER");
 
     // Then
     expect(result.ok).toBe(false);
@@ -114,13 +117,10 @@ describe("Domaine Wordle - Point 2 tests d erreurs", () => {
 
   it("rejette un mot de longueur invalide", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    const gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE"]));
 
     // When
-    const result = submitGuess(gameResult.value, "LIV");
+    const result = submitGuess(game, "LIV");
 
     // Then
     expect(result.ok).toBe(false);
@@ -131,13 +131,10 @@ describe("Domaine Wordle - Point 2 tests d erreurs", () => {
 
   it("rejette un mot avec des caracteres invalides", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    const gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE"]));
 
     // When
-    const result = submitGuess(gameResult.value, "LIVR1");
+    const result = submitGuess(game, "LIVR1");
 
     // Then
     expect(result.ok).toBe(false);
@@ -148,16 +145,11 @@ describe("Domaine Wordle - Point 2 tests d erreurs", () => {
 
   it("rejette une soumission quand la partie est deja terminee", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    const gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
-
-    const wonResult = submitGuess(gameResult.value, "LIVRE");
-    if (!wonResult.ok) throw new Error("Victoire attendue dans ce test");
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE"]));
+    const wonGame = exigerSoumissionOk(submitGuess(game, "LIVRE"));
 
     // When
-    const result = submitGuess(wonResult.value, "LIVRE");
+    const result = submitGuess(wonGame, "LIVRE");
 
     // Then
     expect(result.ok).toBe(false);
@@ -170,13 +162,10 @@ describe("Domaine Wordle - Point 2 tests d erreurs", () => {
 describe("Domaine Wordle - Point 3 cas limites", () => {
   it("applique correctement la regle des lettres multiples sur le cas LIVRE/RAMER", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE", "RAMER"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    const gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE", "RAMER"]));
 
     // When
-    const result = submitGuess(gameResult.value, "RAMER");
+    const result = submitGuess(game, "RAMER");
 
     // Then
     expect(result.ok).toBe(true);
@@ -188,13 +177,10 @@ describe("Domaine Wordle - Point 3 cas limites", () => {
 
   it("marque ABSENT les occurrences surnumeraires d une lettre", () => {
     // Given
-    const dictionary = new FakeDictionary(new Set(["LIVRE", "RARER"]));
-    const provider = new FakeSecretWordProvider("LIVRE");
-    const gameResult = startGame(dictionary, provider);
-    if (!gameResult.ok) throw new Error("Demarrage attendu en succes");
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE", "RARER"]));
 
     // When
-    const result = submitGuess(gameResult.value, "RARER");
+    const result = submitGuess(game, "RARER");
 
     // Then
     expect(result.ok).toBe(true);
