@@ -26,3 +26,20 @@ export type GameState = {
   attempts: readonly Attempt[];
   status: GameStatus;
 };
+
+// Ports (interfaces)
+export interface Dictionary {
+  contains(word: Word): boolean;
+}
+
+export interface SecretWordProvider {
+  pickSecret(): Word;
+}
+
+// Erreurs metier typees
+export type DomainError =
+  | { type: "InvalidWordLength"; expected: 5; actual: number }
+  | { type: "InvalidWordCharacters"; value: string }
+  | { type: "WordNotInDictionary"; value: string }
+  | { type: "GameAlreadyFinished"; status: Exclude<GameStatus, "IN_PROGRESS"> }
+  | { type: "MaxAttemptsReached"; maxAttempts: 6 };
