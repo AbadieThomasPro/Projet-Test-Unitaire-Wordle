@@ -127,6 +127,22 @@ describe("Domaine Wordle - Point 2 tests d erreurs", () => {
     if (!result.ok) {
       expect(result.error.type).toBe("InvalidWordLength");
     }
+    expect(game.attempts).toHaveLength(0);
+  });
+
+  it("accepte un mot en minuscules en le normalisant", () => {
+    // Given
+    const game = exigerDemarrageOk(demarrerPartie(["LIVRE"]));
+
+    // When
+    const result = submitGuess(game, "livre");
+
+    // Then
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.status).toBe("WON");
+      expect(result.value.attempts).toHaveLength(1);
+    }
   });
 
   it("rejette un mot avec des caracteres invalides", () => {
@@ -186,7 +202,39 @@ describe("Domaine Wordle - Point 3 cas limites", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       const feedback = result.value.attempts[0].result.letters.map((x) => x.feedback);
-      expect(feedback).toEqual(["MISPLACED", "ABSENT", "ABSENT", "CORRECT", "ABSENT"]);
+      expect(feedback).toEqual(["MISPLACED", "ABSENT", "ABSENT", "MISPLACED", "ABSENT"]);
+    }
+  });
+
+  it("rejette une soumission apres une defaite", () => {
+    // Given
+    let game = exigerDemarrageOk(demarrerPartie(["LIVRE", "MOTIF"]));
+    for (let i = 0; i < 6; i += 1) {
+      game = exigerSoumissionOk(submitGuess(game, "MOTIF"));
+    }
+
+    // When
+    const result = submitGuess(game, "MOTIF");
+
+    // Then
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.type).toBe("GameAlreadyFinished");
+    }
+  });
+
+  it("gere correctement les doublons dans le mot secret", () => {
+    // Given
+    const game = exigerDemarrageOk(demarrerPartie(["BALLE", "ALLEE"], "BALLE"));
+
+    // When
+    const result = submitGuess(game, "ALLEE");
+
+    // Then
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const feedback = result.value.attempts[0].result.letters.map((x) => x.feedback);
+      expect(feedback).toEqual(["MISPLACED", "MISPLACED", "CORRECT", "ABSENT", "CORRECT"]);
     }
   });
 });
