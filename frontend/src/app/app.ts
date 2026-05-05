@@ -8,7 +8,7 @@ import {
 } from './component/word-grid/word-grid.component';
 import { StatusBannerComponent } from './component/status-banner/status-banner.component';
 import {
-  DicoLinkApiDictionary,
+  WordApiDictionary,
   submitGuessWithApiDictionary,
   startGameFromApis,
   type DomainError,
@@ -28,7 +28,7 @@ export class App implements OnInit {
 
   private readonly trouveMotApiUrl = 'https://trouve-mot.fr/api/size/5';
   private readonly dicoLinkApiUrl = 'https://api.poocoo.fr/api/v1/words';
-  private dictionary: DicoLinkApiDictionary | null = null;
+  private dictionary: WordApiDictionary | null = null;
   private readonly gameState = signal<GameState | null>(null);
 
   readonly currentGuess = signal('');
@@ -104,7 +104,7 @@ export class App implements OnInit {
     this.message.set('Chargement de la partie...');
 
     try {
-      const dictionary = new DicoLinkApiDictionary(this.dicoLinkApiUrl);
+      const dictionary = new WordApiDictionary(this.dicoLinkApiUrl);
       const result = await startGameFromApis(this.trouveMotApiUrl, dictionary);
 
       if (!result.ok) {
@@ -137,8 +137,14 @@ export class App implements OnInit {
       return;
     }
 
+    if (this.currentGuess().length !== this.wordLength) {
+      this.message.set(`Le mot doit contenir ${this.wordLength} lettres.`);
+      return;
+    }
+
     this.isLoading.set(true);
     this.message.set('Verification du mot...');
+    await Promise.resolve(); // yield to let Angular render the loading state before proceeding
 
     try {
       const result = await submitGuessWithApiDictionary(game, this.currentGuess(), this.dictionary);

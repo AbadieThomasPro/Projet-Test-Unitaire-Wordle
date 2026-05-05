@@ -173,7 +173,7 @@ export async function getSecretWordFromTrouveMotApi(
 	return validateWordShape(candidate);
 }
 
-export async function checkWordWithDicoLinkApi(
+export async function checkWordWithWordApi(
 	baseUrl: string,
 	word: string,
 	fetcher: FetchLike = getGlobalFetch(),
@@ -204,7 +204,7 @@ export interface ApiDictionary extends Dictionary {
 	addKnownWord(word: Word): void;
 }
 
-export class DicoLinkApiDictionary implements ApiDictionary {
+export class WordApiDictionary implements ApiDictionary {
 	private readonly knownWords = new Set<Word>();
 
 	constructor(
@@ -230,7 +230,7 @@ export class DicoLinkApiDictionary implements ApiDictionary {
 			return true;
 		}
 
-		const exists = await checkWordWithDicoLinkApi(this.baseUrl, shape.value, this.fetcher);
+		const exists = await checkWordWithWordApi(this.baseUrl, shape.value, this.fetcher);
 		if (exists) {
 			this.addKnownWord(shape.value);
 		}

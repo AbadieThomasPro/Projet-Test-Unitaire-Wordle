@@ -1,44 +1,44 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, assert } from "vitest";
 import { startGame, submitGuess } from "../gameDomain";
-import type { Dictionary, SecretWordProvider } from "../types";
+import type { Dictionary, SecretWordProvider, Word } from "../types";
 
+//Fake: comportement realiste minimal, lisible et deterministe pour les tests metier
 class FakeDictionary implements Dictionary {
-  // Fake: comportement realiste minimal, lisible et deterministe pour les tests metier
   constructor(private readonly words: Set<string>) {}
 
-  contains(word: any): boolean {
-    return this.words.has(String(word));
+  contains(word: Word): boolean {
+    return this.words.has(word);
   }
 }
 
+//Fake: permet de controler le mot secret pour des tests deterministes
 class FakeSecretWordProvider implements SecretWordProvider {
-  // Fake: permet de controler le mot secret pour des tests deterministes
-  constructor(private readonly secret: any) {}
+  constructor(private readonly secret: Word) {}
 
-  pickSecret() {
+  pickSecret(): Word {
     return this.secret;
   }
 }
 
-const SECRET_PAR_DEFAUT = "LIVRE";
+const SECRET_PAR_DEFAUT = "LIVRE" as Word;
 
-function demarrerPartie(words: string[], secret = SECRET_PAR_DEFAUT) {
+function demarrerPartie(words: string[], secret: Word = SECRET_PAR_DEFAUT) {
   const dictionary = new FakeDictionary(new Set(words));
   const provider = new FakeSecretWordProvider(secret);
   return startGame(dictionary, provider);
 }
 
-function exigerDemarrageOk(result: any) {
-  if (!result.ok) throw new Error("Demarrage attendu en succes");
+function exigerDemarrageOk(result: ReturnType<typeof startGame>) {
+  assert(result.ok, `Demarrage attendu en succes, erreur recue : ${!result.ok ? result.error.type : ""}`);
   return result.value;
 }
 
-function exigerSoumissionOk(result: any) {
-  if (!result.ok) throw new Error("Soumission attendue en succes");
+function exigerSoumissionOk(result: ReturnType<typeof submitGuess>) {
+  assert(result.ok, `Soumission attendue en succes, erreur recue : ${!result.ok ? result.error.type : ""}`);
   return result.value;
 }
 
-describe("Domaine Wordle - Point 1 tests nominaux", () => {
+describe("Domaine Wordle - tests nominaux", () => {
   it("demarre une partie en cours avec zero tentative", () => {
     // Given
     const words = ["LIVRE", "RAMER", "MOTIF"];
@@ -100,7 +100,7 @@ describe("Domaine Wordle - Point 1 tests nominaux", () => {
   });
 });
 
-describe("Domaine Wordle - Point 2 tests d erreurs", () => {
+describe("Domaine Wordle - tests d'erreurs", () => {
   it("rejette un mot qui n est pas dans le dictionnaire", () => {
     // Given
     const game = exigerDemarrageOk(demarrerPartie(["LIVRE"]));
@@ -175,7 +175,7 @@ describe("Domaine Wordle - Point 2 tests d erreurs", () => {
   });
 });
 
-describe("Domaine Wordle - Point 3 cas limites", () => {
+describe("Domaine Wordle - cas limites", () => {
   it("applique correctement la regle des lettres multiples sur le cas LIVRE/RAMER", () => {
     // Given
     const game = exigerDemarrageOk(demarrerPartie(["LIVRE", "RAMER"]));
@@ -191,7 +191,7 @@ describe("Domaine Wordle - Point 3 cas limites", () => {
     }
   });
 
-  it("marque ABSENT les occurrences surnumeraires d une lettre", () => {
+  it("marque ABSENT les occurrences surnumeraires d'une lettre", () => {
     // Given
     const game = exigerDemarrageOk(demarrerPartie(["LIVRE", "RARER"]));
 
@@ -225,7 +225,7 @@ describe("Domaine Wordle - Point 3 cas limites", () => {
 
   it("gere correctement les doublons dans le mot secret", () => {
     // Given
-    const game = exigerDemarrageOk(demarrerPartie(["BALLE", "ALLEE"], "BALLE"));
+    const game = exigerDemarrageOk(demarrerPartie(["BALLE", "ALLEE"], "BALLE" as Word));
 
     // When
     const result = submitGuess(game, "ALLEE");

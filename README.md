@@ -7,7 +7,7 @@ Ce depot contient:
 ## 1. Recuperer le projet
 
 ```bash
-git clone <URL_DU_DEPOT>
+git clone https://github.com/AbadieThomasPro/Projet-Test-Unitaire-Wordle.git
 cd Projet-Test-Unitaire-Wordle
 ```
 
