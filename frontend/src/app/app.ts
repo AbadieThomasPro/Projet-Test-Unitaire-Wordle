@@ -171,7 +171,7 @@ export class App implements OnInit {
         }
 
         if (result.value.status === 'LOST') {
-          this.message.set('Perdu.');
+          this.message.set(`Perdu. Le mot etait : ${result.value.secret}`);
           return;
         }
 
