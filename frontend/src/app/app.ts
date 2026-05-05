@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, computed, signal } from '@angular/core';
+import { Component, HostListener, NgZone, OnInit, computed, inject, signal } from '@angular/core';
 import { GameHeaderComponent } from './component/game-header/game-header.component';
 import { KeyboardComponent } from './component/keyboard/keyboard.component';
 import {
@@ -38,6 +38,8 @@ export class App implements OnInit {
   readonly isGameFinished = computed(() => this.gameState()?.status !== 'IN_PROGRESS');
   readonly keyStates = signal<Record<string, TileState>>({});
 
+  private readonly ngZone = inject(NgZone);
+
   async ngOnInit(): Promise<void> {
     await this.initializeGame();
   }
@@ -53,23 +55,25 @@ export class App implements OnInit {
 
   @HostListener('window:keydown', ['$event'])
   onKeyboardEvent(event: KeyboardEvent): void {
-    const key = event.key;
+    this.ngZone.run(() => {
+      const key = event.key;
 
-    if (key === 'Backspace') {
-      event.preventDefault();
-      this.handleInput('BACKSPACE');
-      return;
-    }
+      if (key === 'Backspace') {
+        event.preventDefault();
+        this.handleInput('BACKSPACE');
+        return;
+      }
 
-    if (key === 'Enter') {
-      event.preventDefault();
-      this.handleInput('ENTER');
-      return;
-    }
+      if (key === 'Enter') {
+        event.preventDefault();
+        this.handleInput('ENTER');
+        return;
+      }
 
-    if (/^[a-zA-Z]$/.test(key)) {
-      this.handleInput(key.toUpperCase());
-    }
+      if (/^[a-zA-Z]$/.test(key)) {
+        this.handleInput(key.toUpperCase());
+      }
+    });
   }
 
   handleInput(value: string): void {
@@ -144,30 +148,35 @@ export class App implements OnInit {
 
     this.isLoading.set(true);
     this.message.set('Verification du mot...');
-    await Promise.resolve(); // yield to let Angular render the loading state before proceeding
+    await Promise.resolve(); // yield so Angular renders the loading state before continuing
 
     try {
       const result = await submitGuessWithApiDictionary(game, this.currentGuess(), this.dictionary);
-      if (!result.ok) {
-        this.message.set(this.toUserMessage(result.error));
-        return;
-      }
 
-      this.gameState.set(result.value);
-      this.syncViewFromGame(result.value);
-      this.currentGuess.set('');
+      // ngZone.run() guarantees that signal updates trigger change detection immediately,
+      // even when the await above resolved synchronously (no HTTP call for the correct word).
+      this.ngZone.run(() => {
+        if (!result.ok) {
+          this.message.set(this.toUserMessage(result.error));
+          return;
+        }
 
-      if (result.value.status === 'WON') {
-        this.message.set('Bravo, mot trouve.');
-        return;
-      }
+        this.gameState.set(result.value);
+        this.syncViewFromGame(result.value);
+        this.currentGuess.set('');
 
-      if (result.value.status === 'LOST') {
-        this.message.set('Perdu.');
-        return;
-      }
+        if (result.value.status === 'WON') {
+          this.message.set('Bravo, mot trouve.');
+          return;
+        }
 
-      this.message.set('');
+        if (result.value.status === 'LOST') {
+          this.message.set('Perdu.');
+          return;
+        }
+
+        this.message.set('');
+      });
     } finally {
       this.isLoading.set(false);
     }
