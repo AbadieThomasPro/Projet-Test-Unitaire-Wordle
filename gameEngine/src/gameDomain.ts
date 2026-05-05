@@ -4,6 +4,7 @@ import type {
 	DomainError,
 	EvaluatedLetter,
 	GameState,
+	Guess,
 	LetterFeedback,
 	SecretWordProvider,
 	Word,
@@ -48,7 +49,7 @@ export function validateWordShape(value: string): Result<Word> {
 	return { ok: true, value: normalized as Word };
 }
 
-function evaluateGuess(secret: string, guess: string): readonly EvaluatedLetter[] {
+function evaluateGuess(secret: Word, guess: Word): readonly EvaluatedLetter[] {
 	const feedback: LetterFeedback[] = Array(WORD_LENGTH).fill("ABSENT");
 	const remainingSecretCounts = new Map<string, number>();
 
@@ -148,7 +149,7 @@ export function submitGuess(game: GameState, guessInput: string): Result<GameSta
 	const attempt: Attempt = {
 		turn: game.attempts.length + 1,
 		result: {
-			guess: validatedGuess.value as any,
+			guess: validatedGuess.value as Guess,
 			letters,
 		},
 	};
